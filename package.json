@@ -1,0 +1,9 @@
+{
+  "name":"resident-2026",
+  "version":"0.3.0",
+  "private":true,
+  "type":"module",
+  "description":"Онлайн-чарник и синхронная сессия НРИ Резидент 2026",
+  "engines":{"node":">=22"},
+  "scripts":{"start":"node server/index.js","dev":"node --watch server/index.js","test":"node --test server/*.test.js","check":"node --check server/index.js && node --check public/app.js"}
+}
