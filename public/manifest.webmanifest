@@ -1,0 +1,12 @@
+{
+  "name":"Resident 2026 — Field Companion",
+  "short_name":"Resident 2026",
+  "description":"Цифровой чарник и помощник настольной ролевой игры",
+  "lang":"ru",
+  "start_url":"/",
+  "scope":"/",
+  "display":"standalone",
+  "background_color":"#0c1116",
+  "theme_color":"#0c1116",
+  "icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
