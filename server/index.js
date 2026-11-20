@@ -33,6 +33,11 @@ function campaign(id,u){const c=db.campaigns.find(x=>x.id===id);if(!c)throw fail
 function gm(m){if(m.role!=='gm')throw failure(403,'Действие доступно только мастеру')}
 function emit(id){for(const c of clients.get(id)||[])try{c.write('event: update\ndata: {}\n\n')}catch{}}
 function event(c,user,type,payload,visibility='all',ownerId=null){db.events.push({id:uuid(),campaignId:c.id,actorId:user.id,at:new Date().toISOString(),type,payload,visibility,ownerId});if(db.events.length>10000)db.events.splice(0,db.events.length-10000)}
+const EVENING_BLOCKS=new Set(['heading','scene','check','note']);
+const EVENING_STATUSES=new Set(['planned','running','completed']);
+function dateValue(x){const d=trim(x,10);if(d!==''&&!/^\d{4}-\d{2}-\d{2}$/.test(d))throw failure(400,'Неверная дата');return d}
+function getEvenings(c){if(!Array.isArray(c.evenings))c.evenings=[];return c.evenings}
+function eveningBlock(e,id){const b=e.blocks.find(x=>x.id===id);if(!b)throw failure(404,'Блок не найден');return b}
 const visible=(ev,m,user)=>ev.visibility==='all'||m.role==='gm'||ev.visibility==='owner'&&ev.ownerId===user.id;
 function getChar(ch,m,u){const owner=ch.ownerId===u.id,master=m.role==='gm';const d=structuredClone(ch.data);if(!master)delete d.gmNotes;if(!owner&&!master)delete d.notes;return {id:ch.id,ownerId:ch.ownerId,data:d,editable:master||owner}}
 function snapshot(c,m,u){return {
@@ -41,6 +46,7 @@ function snapshot(c,m,u){return {
  initiative:c.initiative.filter(i=>!i.hidden||m.role==='gm'),
  members:c.members.map(x=>({userId:x.userId,role:x.role,username:db.users.find(y=>y.id===x.userId)?.username||'Участник'})),
  gmNotes:m.role==='gm'?c.gmNotes:null,
+ evenings:m.role==='gm'?getEvenings(c):null,
  characters:db.characters.filter(x=>x.campaignId===c.id).map(x=>getChar(x,m,u)),
  events:db.events.filter(x=>x.campaignId===c.id&&visible(x,m,u)).slice(-120).map(e=>({...e,username:db.users.find(x=>x.id===e.actorId)?.username||'Система'}))
 }}
@@ -107,7 +113,12 @@ const server=http.createServer(async(req,res)=>{try{
   const b=await readBody(req);if(db.campaigns.length!==0)throw failure(409,'Единственная кампания уже создана');const title=trim(b.title,100);if(title.length<3)throw failure(400,'Слишком короткое название');
   const c={id:uuid(),title,ownerId:u.id,inviteCode:randomBytes(6).toString('hex').toUpperCase(),
   description:trim(b.description,500),members:[{userId:u.id,role:'gm'}],scene:{title:'Пролог',description:'',status:'Подготовка',difficulty:1},
-  round:1,turn:0,initiative:[],gmNotes:'',createdAt:new Date().toISOString()};db.campaigns.push(c);
+  round:1,turn:0,initiative:[],gmNotes:'',evenings:[{id:uuid(),title:'Первая игровая встреча',date:'',status:'planned',blocks:[
+    {id:uuid(),type:'heading',title:'Подготовка к игре',text:'',done:false,difficulty:1},
+    {id:uuid(),type:'check',title:'Проверить чарники и готовность игроков',text:'',done:false,difficulty:1},
+    {id:uuid(),type:'scene',title:'Открывающая сцена',text:'Завязка игрового вечера. Что узнают персонажи?',done:false,difficulty:1},
+    {id:uuid(),type:'note',title:'За кулисами',text:'Секретные подсказки, возможные решения и импровизация мастера.',done:false,difficulty:1}
+ ]}],createdAt:new Date().toISOString()};db.campaigns.push(c);
   event(c,u,'system',{text:'Создана кампания'});save();return send(res,201,{campaign:snapshot(c,c.members[0],u)});
  }
  if(method==='POST'&&p==='/api/campaigns/join'){
@@ -124,6 +135,62 @@ const server=http.createServer(async(req,res)=>{try{
   res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});res.write('event: connected\ndata: {}\n\n');
   if(!clients.has(c.id))clients.set(c.id,new Set());clients.get(c.id).add(res);
   const timer=setInterval(()=>{try{res.write(': heartbeat\n\n')}catch{}},25000);req.on('close',()=>{clearInterval(timer);clients.get(c.id)?.delete(res)});return;
+ }
+ if(method==='POST'&&route==='evenings'){
+  gm(m);const b=await readBody(req),list=getEvenings(c);
+  if(list.length>=100)throw failure(400,'Достигнут лимит игровых вечеров');
+  const evening={id:uuid(),title:trim(b.title,120)||'Игровой вечер',date:dateValue(b.date),status:'planned',blocks:[]};
+  list.push(evening);save();emit(c.id);return send(res,201,{evening});
+ }
+ const eveningMatch=route.match(/^evenings\/([a-f0-9-]{36})(?:\/blocks(?:\/([a-f0-9-]{36})(?:\/(play|move))?)?)?$/);
+ if(eveningMatch){
+  gm(m);
+  const evenings=getEvenings(c),evening=evenings.find(x=>x.id===eveningMatch[1]);
+  if(!evening)throw failure(404,'Игровой вечер не найден');
+  const blockId=eveningMatch[2],action=eveningMatch[3],onBlocks=route.includes('/blocks');
+  if(method==='PATCH'&&!onBlocks){
+   const b=await readBody(req);
+   if('title' in b)evening.title=trim(b.title,120)||'Игровой вечер';
+   if('date' in b)evening.date=dateValue(b.date);
+   if('status' in b){if(!EVENING_STATUSES.has(b.status))throw failure(400,'Неверный статус вечера');evening.status=b.status}
+   save();emit(c.id);return send(res,200,{evening});
+  }
+  if(method==='DELETE'&&!onBlocks){
+   c.evenings=evenings.filter(x=>x.id!==evening.id);save();emit(c.id);return send(res,200,{ok:true});
+  }
+  if(method==='POST'&&onBlocks&&!blockId){
+   const b=await readBody(req);if(evening.blocks.length>=200)throw failure(400,'Слишком много блоков');
+   const type=trim(b.type,30);if(!EVENING_BLOCKS.has(type))throw failure(400,'Тип блока не поддерживается');
+   const block={id:uuid(),type,title:trim(b.title,160)||({scene:'Новая сцена',heading:'Раздел',check:'Задача',note:'Заметка'}[type]),text:trim(b.text,10000),done:false,difficulty:integer(b.difficulty??1,1,5)};
+   evening.blocks.push(block);save();emit(c.id);return send(res,201,{block});
+  }
+  if(blockId&&onBlocks){
+   const block=eveningBlock(evening,blockId);
+   if(method==='PATCH'&&!action){
+    const b=await readBody(req);
+    if('title' in b)block.title=trim(b.title,160);
+    if('text' in b)block.text=trim(b.text,10000);
+    if('done' in b)block.done=Boolean(b.done);
+    if('difficulty' in b)block.difficulty=integer(b.difficulty,1,5);
+    save();emit(c.id);return send(res,200,{block});
+   }
+   if(method==='POST'&&action==='play'){
+    if(block.type!=='scene')throw failure(400,'В сцену можно вывести только блок сцены');
+    c.scene={title:block.title||'Сцена',description:block.text,status:'В игре',difficulty:block.difficulty};
+    evening.status='running';event(c,u,'system',{text:'Мастер открыл сцену: '+c.scene.title});
+    save();emit(c.id);return send(res,200,{scene:c.scene});
+   }
+   if(method==='POST'&&action==='move'){
+    const b=await readBody(req),direction=integer(b.direction,-1,1);
+    if(direction===0)throw failure(400,'Направление не указано');
+    const i=evening.blocks.findIndex(x=>x.id===block.id),j=i+direction;
+    if(j>=0&&j<evening.blocks.length)[evening.blocks[i],evening.blocks[j]]=[evening.blocks[j],evening.blocks[i]];
+    save();emit(c.id);return send(res,200,{ok:true});
+   }
+   if(method==='DELETE'&&!action){
+    evening.blocks=evening.blocks.filter(x=>x.id!==block.id);save();emit(c.id);return send(res,200,{ok:true});
+   }
+  }
  }
  if(method==='POST'&&route==='invite/regenerate'){gm(m);if(c.ownerId!==u.id)throw failure(403,'Только создатель может сменить код');c.inviteCode=randomBytes(6).toString('hex').toUpperCase();save();emit(c.id);return send(res,200,{inviteCode:c.inviteCode})}
  if(method==='PATCH'&&route.startsWith('members/')){
