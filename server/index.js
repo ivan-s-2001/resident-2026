@@ -70,7 +70,7 @@ function security(req){if(['POST','PATCH','PUT','DELETE'].includes(req.method)){
  if(req.headers.origin){let origin;try{origin=new URL(req.headers.origin)}catch{throw failure(403,'Origin недопустим')};if(origin.host!==req.headers.host)throw failure(403,'Чужой Origin')}
 }}
 function throttle(req){const ip=req.socket.remoteAddress||'?';const e=attemptMap.get(ip)||{until:Date.now()+900000,count:0};if(e.until<Date.now()){e.until=Date.now()+900000;e.count=0}if(++e.count>35)throw failure(429,'Слишком много попыток, попробуйте позже');attemptMap.set(ip,e)}
-const mime={html:'text/html; charset=utf-8',js:'text/javascript; charset=utf-8',css:'text/css; charset=utf-8',svg:'image/svg+xml',webmanifest:'application/manifest+json'};
+const mime={html:'text/html; charset=utf-8',js:'text/javascript; charset=utf-8',css:'text/css; charset=utf-8',svg:'image/svg+xml',png:'image/png',webmanifest:'application/manifest+json'};
 function serve(res,p){const name=p==='/'?'/index.html':p;const fp=path.resolve(ROOT,'.'+name);if(!fp.startsWith(ROOT+path.sep))throw failure(404,'Не найдено');let stat;try{stat=fs.statSync(fp)}catch{throw failure(404,'Файл не найден')};if(!stat.isFile())throw failure(404,'Файл не найден');const ext=path.extname(fp).slice(1);res.writeHead(200,{'Content-Type':mime[ext]||'application/octet-stream','Cache-Control':ext==='html'||ext==='js'?'no-cache':'public,max-age=600'});fs.createReadStream(fp).pipe(res)}
 const server=http.createServer(async(req,res)=>{try{
  res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','same-origin');
