@@ -13,7 +13,7 @@ const RULES=[
  {title:'Действия в бою',text:'Один ход — две секунды. Стандартные действия: атака, прицеливание (+1 куб к следующей атаке), укрытие, парирование, перезарядка, захват, использование и доставание предмета, рывок или импровизация. Рывок удваивает скорость движения. Подробности защиты и боевых условий определяет мастер.'},
  {title:'Помощь, длительные действия, соревнования',text:'При помощи один персонаж — основной исполнитель, успехи проверок помощников становятся бонусными кубами исполнителя. В длительном действии проверки повторяются, а пул каждый раз уменьшается на один куб до результата или исчерпания времени/возможности. При соревновании обе стороны делают проверку, побеждает большее число успехов.'}
 ];
-const S={user:null,campaigns:[],campaign:null,tab:'sheet',sheet:'stats',charId:null,edit:null,dirty:false,version:0,saveTimer:null,stream:null,online:true,authMode:'login',loading:true,roll:{attr:'knowledge',skill:'',modifier:0,visibility:'all'},lastRoll:null,ruleQuery:''};
+const S={user:null,campaigns:[],setupAvailable:false,workspaceError:'',campaign:null,tab:'sheet',sheet:'stats',charId:null,edit:null,dirty:false,version:0,saveTimer:null,stream:null,online:true,authMode:'login',loading:true,roll:{attr:'knowledge',skill:'',modifier:0,visibility:'all'},lastRoll:null,ruleQuery:''};
 const e=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const count=(xs)=>Array.isArray(xs)?xs.length:0;
 const cap=(x,min,max)=>Math.min(max,Math.max(min,x));
@@ -39,14 +39,18 @@ function navButtons(){
 }
 function shell(content){
  const c=S.campaign;const role=c?.role==='gm'?'Мастер':'Оперативник';
- app.innerHTML='<div class="layout"><aside class="sidebar"><div class="brand" data-act="lobby"><div class="brand-logo">R/26</div><div><h2>RESIDENT</h2><small>FIELD COMPANION</small></div></div><div class="nav-list">'+navButtons()+'</div><div class="sidebar-footer"><div class="user-chip"><div class="avatar">'+e(S.user?.username?.[0]?.toUpperCase()||'R')+'</div><div><b>'+e(S.user?.username)+'</b><br><small>'+role+'</small></div></div><button class="plain" data-act="lobby">← Мои кампании</button><p class="version">RESIDENT 2026 / ALPHA 0.3</p></div></aside><main class="main"><header class="topbar"><div><span class="breadcrumbs">КАМПАНИЯ / '+e(c.title)+'</span><h1>'+e(c.scene?.title||'Операция')+'</h1></div><div class="btn-row"><span class="status '+(S.online?'':'offline')+'"><i></i>'+(S.online?'На связи':'Нет сети')+'</span>'+button('↩','lobby','ghost sm')+'</div></header><div class="content">'+content+'</div></main><nav class="mobile-bar">'+navButtons()+'</nav></div>';
+ app.innerHTML='<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-logo">R/26</div><div><h2>RESIDENT</h2><small>FIELD COMPANION</small></div></div><div class="nav-list">'+navButtons()+'</div><div class="sidebar-footer"><div class="user-chip"><div class="avatar">'+e(S.user?.username?.[0]?.toUpperCase()||'R')+'</div><div><b>'+e(S.user?.username)+'</b><br><small>'+role+'</small></div></div><button class="plain" data-act="logout">Выйти из аккаунта</button><p class="version">RESIDENT 2026 / ALPHA 0.3</p></div></aside><main class="main"><header class="topbar"><div><span class="breadcrumbs">ЕДИНАЯ КАМПАНИЯ / '+e(c.title)+'</span><h1>'+e(c.scene?.title||'Операция')+'</h1></div><div class="btn-row"><span class="status '+(S.online?'':'offline')+'"><i></i>'+(S.online?'На связи':'Нет сети')+'</span>'+button('Выйти','logout','ghost sm')+'</div></header><div class="content">'+content+'</div></main><nav class="mobile-bar">'+navButtons()+'</nav></div>';
 }
 function authView(){
  const registered=S.authMode==='register';
  app.innerHTML='<div class="auth-wrap"><section class="auth-art"><div class="brand"><div class="brand-logo">R/26</div><div><h2>RESIDENT</h2><small>FIELD COMPANION</small></div></div><div><div class="huge">R/26</div><h1>Каждая операция начинается с досье.</h1><p>Цифровой чарник, живые проверки и единый оперативный журнал. Для игроков и ведущих.</p></div><div class="upper">BSAA · ACCESS CONTROL · 2026</div></section><section class="auth-form"><div class="eyebrow">ЗАЩИЩЁННЫЙ ТЕРМИНАЛ</div><h2>'+(registered?'Создать аккаунт':'Вход в систему')+'</h2><form id="auth-form"><div class="field"><label for="username">Позывной / логин</label><input id="username" name="username" autocomplete="username" required minlength="3" maxlength="30" placeholder="например, scientist_ivan"></div><div class="field"><label for="password">Пароль</label><input id="password" name="password" type="password" autocomplete="'+(registered?'new-password':'current-password')+'" required minlength="'+(registered?'10':'1')+'" placeholder="Не менее 10 символов для регистрации"></div><button class="btn primary big block" type="submit">'+(registered?'Зарегистрироваться':'Войти в терминал')+'</button></form><div class="auth-switch">'+(registered?'Уже есть аккаунт?':'Впервые участвуете?')+' <button type="button" data-act="auth-switch">'+(registered?'Войти':'Создать аккаунт')+'</button></div><p class="hint" style="margin-top:25px">Аккаунт нужен, чтобы чарник сохранялся и синхронизировался между устройствами.</p></section></div>';
 }
-function lobbyView(){
- app.innerHTML='<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-logo">R/26</div><div><h2>RESIDENT</h2><small>FIELD COMPANION</small></div></div><div class="sidebar-footer"><div class="user-chip"><div class="avatar">'+e(S.user.username[0].toUpperCase())+'</div><div><b>'+e(S.user.username)+'</b><br><small>Подключённый аккаунт</small></div></div><button class="plain" data-act="logout">Выйти</button></div></aside><main class="main"><header class="topbar"><div><span class="breadcrumbs">ДОСТУП К ОПЕРАЦИЯМ</span><h1>Мои кампании</h1></div><button class="btn ghost sm" data-act="logout">Выйти</button></header><div class="content">'+headText('Оперативная база','Выберите кампанию или присоединитесь к новой группе.')+'<section class="campaigns">'+S.campaigns.map(c=>'<article class="campaign-card"><span class="tag '+(c.role==='gm'?'gold':'green')+'">'+(c.role==='gm'?'МАСТЕР':'ИГРОК')+'</span><h3>'+e(c.title)+'</h3><p>'+e(c.scene)+' · '+c.count+' участн.</p><div class="spacer"></div><button type="button" class="btn primary" data-act="open-campaign" data-id="'+e(c.id)+'">Открыть кампанию →</button></article>').join('')+'<article class="campaign-card"><span class="upper">НОВАЯ ОПЕРАЦИЯ</span><h3>Создать кампанию</h3><p>Получите код для приглашения игроков.</p><div class="spacer"></div>'+button('Создать →','create-campaign','gold')+'</article></section><div class="panel" style="margin-top:20px;max-width:570px"><div class="panel-head"><h2>Присоединиться по приглашению</h2></div><form id="join-form" class="new-row"><input required name="code" maxlength="24" placeholder="Код от мастера" aria-label="Код приглашения"><button class="btn primary" type="submit">Войти</button></form></div></div></main></div>';
+function onboardingView(){
+ const first=S.setupAvailable;
+ const panel=first?
+ '<section class="panel" style="max-width:660px"><div class="panel-head"><h2>Инициализация кампании</h2><span class="tag gold">ТОЛЬКО ОДИН РАЗ</span></div><p class="hint">Первая учётная запись создаёт единственную кампанию и получает роль главного мастера. Затем мастер приглашает игроков по коду.</p><form id="setup-form" style="margin-top:16px"><div class="field"><label>Название общей кампании</label><input name="title" required minlength="3" maxlength="100" value="Resident 2026"></div><button class="btn primary big" type="submit" style="margin-top:15px">Начать кампанию →</button></form></section>':
+ '<section class="panel" style="max-width:660px"><div class="panel-head"><h2>Вход в общую кампанию</h2><span class="tag green">ОДНА ГРУППА</span></div><p class="hint">Кампания уже создана мастером. Получите код приглашения, чтобы открыть свой чарник и участвовать в сессии.</p><form id="join-form" class="new-row"><input required name="code" maxlength="24" autocomplete="off" placeholder="Код приглашения от мастера" aria-label="Код приглашения"><button class="btn primary" type="submit">Присоединиться</button></form></section>';
+ app.innerHTML='<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-logo">R/26</div><div><h2>RESIDENT</h2><small>FIELD COMPANION</small></div></div><div class="sidebar-footer"><div class="user-chip"><div class="avatar">'+e(S.user.username[0].toUpperCase())+'</div><div><b>'+e(S.user.username)+'</b><br><small>Аккаунт игрока</small></div></div><button class="plain" data-act="logout">Выйти из аккаунта</button></div></aside><main class="main"><header class="topbar"><div><span class="breadcrumbs">BSAA / ЕДИНАЯ КАМПАНИЯ</span><h1>Resident 2026</h1></div><button class="btn ghost sm" data-act="logout">Выйти</button></header><div class="content">'+headText(first?'Создание операции':'Подключение к группе','Для очных игровых сессий: все за одним столом, чарник у каждого в устройстве.')+(S.workspaceError?'<p class="notice" style="margin-bottom:16px">'+e(S.workspaceError)+'</p>':'')+panel+'</div></main></div>';
 }
 function targetBudgets(d){
  const middle=['Тело','Ум','Харизма'].find(g=>g!==d.strongest&&g!==d.weakest);
@@ -122,10 +126,19 @@ function gmView(){
 function render(){
  if(S.loading){app.innerHTML='<div class="boot"><span class="mark">R/26</span><h1>RESIDENT 2026</h1><p>ПОДКЛЮЧЕНИЕ…</p></div>';return}
  if(!S.user){authView();return}
- if(!S.campaign){lobbyView();return}
+ if(!S.campaign){onboardingView();return}
  shell(S.tab==='sheet'?sheetView():S.tab==='session'?sessionView():S.tab==='rules'?rulesView():gmView());
 }
-async function loadLobby(){if(S.stream){S.stream.close();S.stream=null}S.campaign=null;S.charId=null;S.edit=null;S.dirty=false;S.campaigns=(await api('/campaigns')).campaigns;render()}
+async function loadWorkspace(){
+ if(S.stream){S.stream.close();S.stream=null}
+ S.campaign=null;S.charId=null;S.edit=null;S.dirty=false;S.workspaceError='';
+ const result=await api('/campaigns');
+ S.campaigns=result.campaigns;
+ S.setupAvailable=Boolean(result.setupAvailable);
+ if(S.campaigns.length===1){await openCampaign(S.campaigns[0].id);return}
+ if(S.campaigns.length>1)S.workspaceError='В старой базе обнаружено несколько кампаний. Автоматический выбор отключён, чтобы не потерять данные. Администратор должен выполнить миграцию.';
+ render();
+}
 function currentChar(){return S.campaign?.characters.find(x=>x.id===S.charId)}
 function pickCharacter(id){const ch=S.campaign.characters.find(x=>x.id===id);S.charId=ch?.id||null;S.edit=ch?structuredClone(ch.data):null;S.dirty=false;S.version++;S.lastRoll=null;render()}
 function connectStream(id){
@@ -202,10 +215,7 @@ document.addEventListener('click',async ev=>{
  try{
   if(['attr-step','damage','heal','skill-step','del-skill','del-item','del-ability','add-skill','add-item','add-ability'].includes(act)){sheetEditAction(act,b);return}
   if(act==='auth-switch'){S.authMode=S.authMode==='login'?'register':'login';render();return}
-  if(act==='lobby'){if(S.dirty)await saveChar();await loadLobby();return}
   if(act==='logout'){await api('/auth/logout','POST',{});if(S.stream)S.stream.close();S.user=null;S.campaign=null;S.authMode='login';render();return}
-  if(act==='open-campaign'){await openCampaign(b.dataset.id);return}
-  if(act==='create-campaign'){const title=prompt('Название новой кампании','Операция Resident 2026');if(!title)return;const result=await api('/campaigns','POST',{title});await loadLobby();await openCampaign(result.campaign.id);return}
   if(act==='nav'){if(S.dirty)await saveChar();S.tab=b.dataset.tab;render();return}
   if(act==='sheet-tab'){S.sheet=b.dataset.tab;render();return}
   if(act==='choose-attr'){S.roll.attr=b.dataset.key;S.tab='sheet';S.sheet='stats';render();return}
@@ -254,10 +264,13 @@ document.addEventListener('submit',async ev=>{
   if(form.id==='auth-form'){
    const route=S.authMode==='register'?'/auth/register':'/auth/login';
    const r=await api(route,'POST',{username:get('username'),password:get('password')});
-   S.user=r.user;await loadLobby();pop('Вход выполнен');return;
+   S.user=r.user;await loadWorkspace();pop('Вход выполнен');return;
+  }
+  if(form.id==='setup-form'){
+   await api('/campaigns','POST',{title:get('title')});await loadWorkspace();pop('Кампания создана');return;
   }
   if(form.id==='join-form'){
-   const r=await api('/campaigns/join','POST',{code:get('code')});await loadLobby();await openCampaign(r.campaignId);return;
+   await api('/campaigns/join','POST',{code:get('code')});await loadWorkspace();return;
   }
   if(form.id==='message-form'){await mutate('/messages','POST',{text:get('text')});form.reset();return}
   if(form.id==='scene-form'){await mutate('/scene','POST',{title:get('title'),description:get('description'),status:get('status'),difficulty:val(get('difficulty'))});pop('Сцена обновлена');return}
@@ -271,4 +284,9 @@ window.addEventListener('offline',()=>{S.online=false});
 window.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.campaign)refreshCampaign()});
 setInterval(()=>{if(S.campaign&&!document.hidden)refreshCampaign()},20000);
 if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('/sw.js').catch(()=>{});
-(async()=>{try{S.user=(await api('/me')).user;S.campaigns=(await api('/campaigns')).campaigns}catch{S.user=null}S.loading=false;render()})();
+(async()=>{
+ try{S.user=(await api('/me')).user}catch{S.user=null}
+ S.loading=false;
+ if(S.user){try{await loadWorkspace()}catch(err){pop(err.message,true);render()}}
+ else render();
+})();
