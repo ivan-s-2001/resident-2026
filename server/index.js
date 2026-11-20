@@ -102,9 +102,9 @@ const server=http.createServer(async(req,res)=>{try{
  }
  const u=auth(req);
  if(method==='GET'&&p==='/api/me')return send(res,200,{user:{id:u.id,username:u.username}});
- if(method==='GET'&&p==='/api/campaigns')return send(res,200,{campaigns:db.campaigns.filter(c=>c.members.some(m=>m.userId===u.id)).map(c=>({id:c.id,title:c.title,role:member(c,u).role,scene:c.scene.title,count:c.members.length}))});
+ if(method==='GET'&&p==='/api/campaigns')return send(res,200,{setupAvailable:db.campaigns.length===0,campaigns:db.campaigns.filter(c=>c.members.some(m=>m.userId===u.id)).map(c=>({id:c.id,title:c.title,role:member(c,u).role,scene:c.scene.title,count:c.members.length}))});
  if(method==='POST'&&p==='/api/campaigns'){
-  const b=await readBody(req),title=trim(b.title,100);if(title.length<3)throw failure(400,'Слишком короткое название');
+  const b=await readBody(req);if(db.campaigns.length!==0)throw failure(409,'Единственная кампания уже создана');const title=trim(b.title,100);if(title.length<3)throw failure(400,'Слишком короткое название');
   const c={id:uuid(),title,ownerId:u.id,inviteCode:randomBytes(6).toString('hex').toUpperCase(),
   description:trim(b.description,500),members:[{userId:u.id,role:'gm'}],scene:{title:'Пролог',description:'',status:'Подготовка',difficulty:1},
   round:1,turn:0,initiative:[],gmNotes:'',createdAt:new Date().toISOString()};db.campaigns.push(c);
