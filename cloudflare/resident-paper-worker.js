@@ -53,10 +53,37 @@ if(path==='/assets/paper.png'){
  const cache=caches.default,hit=await cache.match(request);
  if(hit)return hit;
  try{
-  const remote=await fetch('https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Paper001_4K_Color.png/960px-Paper001_4K_Color.png');
-  if(!remote.ok)throw new Error('Paper texture HTTP '+remote.status);
-  const picture=new Response(remote.body,{headers:{'Content-Type':'image/png','Cache-Control':'public, max-age=604800','X-Content-Type-Options':'nosniff'}});
+  const remote=await fetch('https://ambientcg.com/get?file=Paper001_1K-JPG.zip');
+  if(!remote.ok)throw new Error('ambientCG download HTTP '+remote.status);
+  const zip=await remote.arrayBuffer(),view=new DataView(zip);
+  let end=-1;
+  for(let i=zip.byteLength-22;i>=Math.max(0,zip.byteLength-65557);i--){
+   if(view.getUint32(i,true)===0x06054b50){end=i;break}
+  }
+  if(end<0)throw new Error('Paper ZIP central directory missing');
+  let offset=view.getUint32(end+16,true),data=null;
+  for(let i=0;i<view.getUint16(end+10,true);i++){
+   if(view.getUint32(offset,true)!==0x02014b50)throw new Error('Invalid Paper ZIP header');
+   const method=view.getUint16(offset+10,true);
+   const length=view.getUint32(offset+20,true),nameLength=view.getUint16(offset+28,true);
+   const extra=view.getUint16(offset+30,true),comment=view.getUint16(offset+32,true);
+   const filename=new TextDecoder().decode(new Uint8Array(zip,offset+46,nameLength));
+   if(/paper001.*_color\.jpg$/i.test(filename)){
+    const local=view.getUint32(offset+42,true);
+    if(view.getUint32(local,true)!==0x04034b50)throw new Error('Invalid Paper ZIP file header');
+    const start=local+30+view.getUint16(local+26,true)+view.getUint16(local+28,true);
+    const packed=zip.slice(start,start+length);
+    data=method===0?packed:method===8?await new Response(new Blob([packed]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer():null;
+    break;
+   }
+   offset+=46+nameLength+extra+comment;
+  }
+  if(!data||data.byteLength<20000)throw new Error('Paper color texture was not found');
+  const picture=new Response(data,{headers:{'Content-Type':'image/jpeg','Cache-Control':'public, max-age=604800','X-Content-Type-Options':'nosniff'}});
   await cache.put(request,picture.clone());return picture;
- }catch(e){console.error('paper',e);return new Response('Paper texture unavailable',{status:503})}
+ }catch(e){
+  console.error('ambientCG Paper001 unavailable',e);
+  return new Response('Paper texture unavailable: '+String(e),{status:503,headers:{'Cache-Control':'no-cache'}});
+ }
 }
 const headers={'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Referrer-Policy':'same-origin'};if(path==='/manifest.webmanifest')return new Response(MANIFEST,{headers:{...headers,'Content-Type':'application/manifest+json; charset=utf-8'}});if(path==='/icon.svg')return new Response(ICON,{headers:{...headers,'Content-Type':'image/svg+xml'}});if(path==='/sw.js')return new Response(SW,{headers:{...headers,'Content-Type':'text/javascript; charset=utf-8','Service-Worker-Allowed':'/'}});if(path!=='/'&&path!=='/index.html')return new Response('Not found',{status:404,headers});return new Response(HTML,{headers:{...headers,'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'self'; font-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'"}})}};
