@@ -59,7 +59,7 @@ function statsPanel(d){
   const members=A.filter(x=>x.group===g),spent=members.reduce((n,a)=>n+attrCost(val(d.attrs[a.id])),0),target=budgets[g];
   return '<div class="attr-group"><div class="group-heading"><b>'+g+'</b><span class="'+(spent>target?'over':'')+' mono">'+spent+' / '+target+' очков</span></div>'+members.map(a=>{
    const lv=val(d.attrs[a.id]);
-   return '<div class="attr-item"><div class="attr-top"><button type="button" title="Выбрать атрибут для броска" data-act="choose-attr" data-key="'+a.id+'">'+a.name+' ↗</button><div class="pips" aria-label="'+lv+' из 5">'+[1,2,3,4,5].map(i=>'<i class="pip '+(i<=lv?'on':'')+'"></i>').join('')+'</div></div><div class="stepper"><button type="button" data-act="attr-step" data-key="'+a.id+'" data-delta="-1" '+(lv<=1?'disabled':'')+'>−</button><span>'+lv+'</span><button type="button" data-act="attr-step" data-key="'+a.id+'" data-delta="1" '+(lv>=5?'disabled':'')+'>+</button></div></div>';
+   return '<div class="attr-item"><div class="attr-top"><button type="button" title="Выбрать атрибут для броска" data-act="choose-attr" data-key="'+a.id+'">'+a.name+' ↗</button><button type="button" class="quick-roll" title="Бросить этот атрибут одним нажатием" data-act="instant-roll" data-key="'+a.id+'">⚄</button><div class="pips" aria-label="'+lv+' из 5">'+[1,2,3,4,5].map(i=>'<i class="pip '+(i<=lv?'on':'')+'"></i>').join('')+'</div></div><div class="stepper"><button type="button" data-act="attr-step" data-key="'+a.id+'" data-delta="-1" '+(lv<=1?'disabled':'')+'>−</button><span>'+lv+'</span><button type="button" data-act="attr-step" data-key="'+a.id+'" data-delta="1" '+(lv>=5?'disabled':'')+'>+</button></div></div>';
   }).join('')+'</div>';
  }).join('');
  const opts=['Тело','Ум','Харизма'];
@@ -131,7 +131,7 @@ function pickCharacter(id){const ch=S.campaign.characters.find(x=>x.id===id);S.c
 function connectStream(id){
  if(S.stream)S.stream.close();
  const es=new EventSource('/api/campaigns/'+encodeURIComponent(id)+'/stream');S.stream=es;
- es.addEventListener('connected',()=>{S.online=true});
+ es.addEventListener('connected',()=>{S.online=true;refreshCampaign()});
  es.addEventListener('update',()=>refreshCampaign());
  es.onerror=()=>{S.online=false;const ind=document.querySelector('.status');if(ind){ind.classList.add('offline');ind.textContent='Нет соединения'}};
 }
@@ -209,6 +209,7 @@ document.addEventListener('click',async ev=>{
   if(act==='nav'){if(S.dirty)await saveChar();S.tab=b.dataset.tab;render();return}
   if(act==='sheet-tab'){S.sheet=b.dataset.tab;render();return}
   if(act==='choose-attr'){S.roll.attr=b.dataset.key;S.tab='sheet';S.sheet='stats';render();return}
+  if(act==='instant-roll'){S.roll.attr=b.dataset.key;S.roll.skill='';await doRoll();return}
   if(act==='choose-skill'){S.roll.skill=b.dataset.name;S.sheet='stats';render();return}
   if(act==='new-character'){await createCharacter();return}
   if(act==='save'){await saveChar();pop('Чарник сохранён');return}
