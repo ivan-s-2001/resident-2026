@@ -16,11 +16,13 @@ test('Cloudflare paper character sheet has valid client and service worker JS', 
   new vm.Script(js, { filename: 'mobile-sheet.js' });
   new vm.Script(sw, { filename: 'mobile-sw.js' });
   assert.match(html, /<nav class="bottom"/);
+  assert.match(html, /class="bsaa-masthead"/);
+  assert.match(html, /CLASSIFIED/);
   assert.match(html, /Unutterable/);
   assert.match(html, /pdf-condition-lines/);
   assert.match(html, /portrait-input/);
   assert.match(html, /roll-settings/);
-  assert.match(sw, /r26-paper-v\d+/);
+  assert.match(sw, /r26-(?:paper|bsaa-dossier)-v\d+/);
 });
 test('PDF-inspired character sheet keeps its original terms and no Resident masthead', () => {
   const html = asset('HTML');
