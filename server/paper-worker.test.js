@@ -18,7 +18,7 @@ test('Offline mobile character sheet JavaScript is valid',()=>{
  assert.match(html,/class="bsaa-masthead"/);
  assert.match(html,/portrait-input/);
  assert.match(html,/roll-settings/);
- assert.match(sw,/r26-real-asset-kit-v\d+/);
+ assert.match(sw,/r26-reference-dossier-v\d+/);
 });
 test('Official ready-made icon kit and paper texture are wired',()=>{
  const kit=asset('KIT_ICONS'),html=asset('HTML'),sw=asset('SW');
@@ -34,6 +34,20 @@ test('Official ready-made icon kit and paper texture are wired',()=>{
  assert.doesNotMatch(html,/<div class="paperclip"/);
  assert.doesNotMatch(html,/class="portrait-symbol"/);
  assert.doesNotMatch(html,/class="bsaa-mark"/);
+});
+test('Reference dossier uses Cyrillic fonts and live identity details',()=>{
+ const html=asset('HTML'),sw=asset('SW');
+ for(const font of ['oswald.ttf','roboto-condensed.ttf','ibm-plex-mono.ttf']){
+  assert.ok(html.includes('/assets/fonts/'+font));
+  assert.ok(sw.includes('/assets/fonts/'+font),'Missing offline cache for '+font);
+ }
+ for(const key of ['serviceId','citizenship','speciality','division']){
+  assert.ok(html.includes(key),'Missing dossier data '+key);
+ }
+ assert.match(html,/function code39\(value\)/);
+ assert.match(html,/assets\/bsaa-reference.jpg/);
+ assert.match(html,/assets\/fingerprint.svg/);
+ assert.doesNotMatch(html,/РЕЗИДЕНТ 2026<\/div>/);
 });
 test('Character system retains author terms and the five tabs',()=>{
  const html=asset('HTML');
