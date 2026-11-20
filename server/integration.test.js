@@ -29,8 +29,15 @@ test('регистрация, роли, чарник, приватность и 
   const g=await send('/auth/register','POST',{username:'Master',password:'masterpass123'}),p=await send('/auth/register','POST',{username:'Player',password:'playerpass123'});
   assert.equal(g.status,200);assert.equal(p.status,200);
   const gm=g.cookie,player=p.cookie;
+  const initial=(await send('/campaigns','GET',undefined,gm)).data;
+  assert.equal(initial.setupAvailable,true);
   const created=await send('/campaigns','POST',{title:'Операция Тест'},gm);
   assert.equal(created.status,201);
+  const duplicate=await send('/campaigns','POST',{title:'Вторая кампания'},gm);
+  assert.equal(duplicate.status,409,'Нельзя создавать вторую кампанию');
+  const unjoined=(await send('/campaigns','GET',undefined,player)).data;
+  assert.equal(unjoined.setupAvailable,false);
+  assert.equal(unjoined.campaigns.length,0,'Игрок не должен видеть закрытые данные до приглашения');
   const id=created.data.campaign.id,code=created.data.campaign.inviteCode;
   assert.ok(code);
   const joined=await send('/campaigns/join','POST',{code},player);assert.equal(joined.status,200);
