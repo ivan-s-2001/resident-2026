@@ -27,8 +27,10 @@ test('PDF-style sheet keeps five mobile tabs and authored rule terminology', () 
   for (const name of ['Лист','Навыки','Здоровье','Вещи','Досье']) {
     assert.ok(html.includes(name), `Missing tab ${name}`);
   }
-  for (const term of ['ХАРАКТЕРИСТИКИ','НАВЫКИ И ЧЕРТЫ','ШМОТЬЁ','ДЛЯ ЗАМЕТОК']) {
+  for (const term of ['ХАРАКТЕРИСТИКИ','НАВЫКИ И ЧЕРТЫ','СНАРЯЖЕНИЕ','ЗАМЕТКИ']) {
     assert.ok(html.includes(term), `Missing original term ${term}`);
   }
   assert.match(html, /border-bottom:2px dashed/);
+  assert.match(html, /function compactHealth\(\)/);
+  assert.doesNotMatch(html, /<h1 class="heading">ЛИЧНОЕ ДЕЛО<\/h1>/);
 });
