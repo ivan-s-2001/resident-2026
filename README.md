@@ -93,7 +93,7 @@ Dockerfile выставляет NODE_ENV=production. Не размещайте �
 
 - [The Living Codex](https://github.com/Marzogh/The-Living-Codex) — local-first чарник, разделение Edit Mode / Play Mode, MIT. Полезно как пример UX.
 - [COMP/CON](https://github.com/massif-press/compcon) — цифровые листы и инструменты мастера для LANCER, GPL-3.0. Полезно для организации игровых действий.
-- [GM-Companion](https://gm-companion.github.io/) — инструменты мастера для физического стола, GPL-3.0; настольная программа.
+- [GM-Companion](https://github.com/PhilInTheGaps/GM-Companion) — инструменты мастера для физического стола, GPL-3.0; настольная программа.
 - [Adventurer's Codex](https://github.com/adventurerscodex/adventurerscodex) — онлайн-чарники, сведения о партии и GM-инструменты, GPL-3.0.
 
 Сейчас это **референсы**, а не зависимости. Код сторонних проектов не копировался. При фактическом заимствовании надо проверять лицензионные условия каждого проекта.
