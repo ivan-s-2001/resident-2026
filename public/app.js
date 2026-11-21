@@ -98,12 +98,16 @@ function renderLastRoll(){
 }
 function sheetView(){
  const c=S.campaign,ch=c.characters.find(x=>x.id===S.charId),d=S.edit;
- if(!ch||!d)return headText('Личное дело','Ваш персонаж ещё не создан.')+'<div class="empty"><b>Пока нет персонажа</b><p>Создайте оперативника, чтобы открыть интерактивный чарник.</p>'+button('+ Создать персонажа','new-character','primary')+'</div>';
+ if(!ch||!d)return headText('Личное дело','Ваш персонаж ещё не создан.')+'<section class="panel"><h2>Начните с персонажа</h2><p>Личный чарник откроется сразу после создания.</p>'+button('+ Создать персонажа','new-character','primary')+'</section>';
  const editable=ch.editable,chooser=c.characters.length>1?'<select class="sheet-chooser" data-control="character">'+c.characters.map(x=>'<option value="'+e(x.id)+'" '+(x.id===S.charId?'selected':'')+'>'+e(x.data.name)+(x.editable?'':' · просмотр')+'</option>').join('')+'</select>':'';
- const top='<section class="panel"><div class="sheet-head"><div class="sheet-insignia">✦</div><div><input class="sheet-name" aria-label="Имя персонажа" data-field="name" value="'+e(d.name)+'" '+(!editable?'disabled':'')+'><input class="sheet-role" aria-label="Роль персонажа" data-field="role" value="'+e(d.role)+'" '+(!editable?'disabled':'')+'></div>'+chooser+'</div><div class="btn-row"><span class="tag green">● DOSSIER ACTIVE</span><span class="tag">'+(editable?'РЕДАКТИРОВАНИЕ':'ТОЛЬКО ПРОСМОТР')+'</span><span class="hint" id="saveIndicator">'+(S.dirty?'Сохранение…':'Сохранено на сервере')+'</span>'+(editable?button('Сохранить','save','ghost sm'):'')+button('+ Персонаж','new-character','ghost sm')+'</div></section>';
- if(!editable)return headText('Чарник','Персонаж другого участника доступен только для чтения.')+top+'<div class="stack">'+readonlyChar(d)+'</div>';
- const body=S.sheet==='stats'?'<div class="split"><div class="stack">'+statsPanel(d)+healthPanel(d)+'</div><div class="stack">'+rollPanel(d)+skillsPanel(d)+'</div></div>':S.sheet==='gear'?'<div class="two"><div class="stack">'+itemsPanel(d)+abilitiesPanel(d)+'</div><div class="stack">'+skillsPanel(d)+healthPanel(d)+'</div></div>':bioPanel(d);
- return headText('Личное дело','Всё необходимое для игры — в одном чарнике.')+top+'<div class="sheet-tabs">'+[['stats','Характеристики и броски'],['gear','Навыки и снаряжение'],['bio','Биография и заметки']].map(t=>'<button class="sheet-tab '+(S.sheet===t[0]?'active':'')+'" data-act="sheet-tab" data-tab="'+t[0]+'">'+t[1]+'</button>').join('')+'</div>'+body;
+ const top='<section class="panel sheet-summary"><div class="sheet-head"><div class="sheet-avatar">'+e(d.name.slice(0,1).toUpperCase()||'?')+'</div><div><input class="sheet-name" aria-label="Имя персонажа" data-field="name" value="'+e(d.name)+'" '+(!editable?'disabled':'')+'><input class="sheet-role" aria-label="Роль" data-field="role" value="'+e(d.role)+'" '+(!editable?'disabled':'')+'></div>'+chooser+'</div><div class="btn-row"><span class="tag green">В ИГРЕ</span><span class="hint" id="saveIndicator">'+(S.dirty?'Сохранение…':'Сохранено')+'</span>'+(editable?button('Сохранить','save','ghost sm'):'')+'</div></section>';
+ if(!editable)return headText('Чарник','Просмотр персонажа участника.')+top+effectsPanel(ch)+'<div class="stack">'+readonlyChar(d)+'</div>';
+ const tabs=[['overview','Обзор'],['stats','Характеристики'],['gear','Вещи'],['bio','Досье']];
+ const body=S.sheet==='overview'?'<div class="stack">'+healthPanel(d)+effectsPanel(ch)+rollPanel(d)+'</div>':
+ S.sheet==='stats'?'<div class="stack">'+statsPanel(d)+skillsPanel(d)+'</div>':
+ S.sheet==='gear'?'<div class="stack">'+itemsPanel(d)+abilitiesPanel(d)+'</div>':bioPanel(d);
+ return headText('Личное дело','Для игры — состояние и броски; для настройки — отдельные вкладки.')+top+
+ '<div class="sheet-tabs">'+tabs.map(([k,title])=>'<button class="sheet-tab '+(S.sheet===k?'active':'')+'" data-act="sheet-tab" data-tab="'+k+'">'+title+'</button>').join('')+'</div>'+body;
 }
 function readonlyChar(d){return '<div class="panel"><h2>'+e(d.name)+'</h2><p class="hint">'+e(d.role)+'</p><hr class="thin-rule"><div class="three">'+['Тело','Ум','Харизма'].map(g=>'<div><h3>'+g+'</h3>'+A.filter(x=>x.group===g).map(x=>'<p>'+x.name+': '+d.attrs[x.id]+'</p>').join('')+'</div>').join('')+'</div><hr class="thin-rule"><h3>Навыки</h3>'+d.skills.map(s=>'<p>'+e(s.name)+' · '+s.level+'</p>').join('')+'</div>'}
 function eventNode(x){
@@ -187,7 +191,7 @@ function connectStream(id){
  es.onerror=()=>{S.online=false;const ind=document.querySelector('.status');if(ind){ind.classList.add('offline');ind.textContent='Нет соединения'}};
 }
 async function openCampaign(id){
- try{const data=await api('/campaigns/'+encodeURIComponent(id));S.campaign=data.campaign;S.tab='sheet';
+ try{const data=await api('/campaigns/'+encodeURIComponent(id));S.campaign=data.campaign;S.tab=S.campaign.role==='gm'?'gm':'sheet';
   const mine=S.campaign.characters.find(x=>x.ownerId===S.user.id)||S.campaign.characters[0];
   pickCharacter(mine?.id);connectStream(id);
  }catch(err){pop(err.message,true)}
@@ -227,7 +231,7 @@ async function doRoll(){
 async function createCharacter(){
  try{
   const obj=await api('/campaigns/'+S.campaign.id+'/characters','POST',{name:'Новый оперативник',role:'Новобранец BSAA'});
-  await refreshCampaign();S.sheet='stats';pickCharacter(obj.character.id);
+  await refreshCampaign();S.sheet='overview';pickCharacter(obj.character.id);
  }catch(err){pop(err.message,true)}
 }
 function sheetEditAction(act,b){
@@ -252,6 +256,28 @@ document.addEventListener('click',async ev=>{
  const act=b.dataset.act;
  try{
   if(['attr-step','damage','heal','skill-step','del-skill','del-item','del-ability','add-skill','add-item','add-ability'].includes(act)){sheetEditAction(act,b);return}
+  if(act==='gm-mode'){S.gmMode=b.dataset.mode;render();return}
+  if(act==='gm-target'){S.gmTargetId=b.dataset.id;render();return}
+  if(act==='gm-open-sheet'){const c=S.campaign.characters.find(x=>x.id===(S.gmTargetId||S.campaign.characters[0]?.id));if(c){pickCharacter(c.id);S.sheet='overview';S.tab='sheet';render()}return}
+  if(act==='gm-injury'){
+   const c=S.campaign.characters.find(x=>x.id===(S.gmTargetId||S.campaign.characters[0]?.id));
+   if(c)await mutate('/characters/'+c.id+'/injury','POST',{track:b.dataset.track,kind:b.dataset.kind||'blunt',delta:Number(b.dataset.delta)});
+   return;
+  }
+  if(act==='gm-remove-effect'){
+   const c=S.campaign.characters.find(x=>x.id===(S.gmTargetId||S.campaign.characters[0]?.id));
+   if(c)await mutate('/characters/'+c.id+'/effects/'+b.dataset.id,'DELETE');return;
+  }
+  if(['gm-check-block','gm-move-block','gm-remove-block','gm-play-scene'].includes(act)){
+   const evening=(S.campaign.evenings||[]).find(x=>x.id===S.gmEveningId)||S.campaign.evenings?.[0];
+   if(!evening)return;
+   const path='/evenings/'+evening.id+'/blocks/'+b.dataset.id;
+   if(act==='gm-check-block')await mutate(path,'PATCH',{done:b.dataset.done==='true'});
+   else if(act==='gm-move-block')await mutate(path+'/move','POST',{direction:Number(b.dataset.direction)});
+   else if(act==='gm-remove-block'){if(confirm('Удалить блок плана?'))await mutate(path,'DELETE')}
+   else if(confirm('Открыть эту сцену для игроков?'))await mutate(path+'/play','POST',{});
+   return;
+  }
   if(act==='auth-switch'){S.authMode=S.authMode==='login'?'register':'login';render();return}
   if(act==='logout'){await api('/auth/logout','POST',{});if(S.stream)S.stream.close();S.user=null;S.campaign=null;S.authMode='login';render();return}
   if(act==='nav'){if(S.dirty)await saveChar();S.tab=b.dataset.tab;render();return}
@@ -270,6 +296,17 @@ document.addEventListener('click',async ev=>{
 });
 document.addEventListener('change',async ev=>{
  const t=ev.target;
+ if(t.dataset.control==='gm-evening'){S.gmEveningId=t.value;render();return}
+ if(t.dataset.control==='gm-evening-status'){
+  const evening=(S.campaign.evenings||[]).find(x=>x.id===S.gmEveningId)||S.campaign.evenings?.[0];
+  if(evening)await mutate('/evenings/'+evening.id,'PATCH',{status:t.value});return;
+ }
+ if(t.dataset.blockTitle!==undefined||t.dataset.blockText!==undefined){
+  const evening=(S.campaign.evenings||[]).find(x=>x.id===S.gmEveningId)||S.campaign.evenings?.[0];
+  if(evening)await mutate('/evenings/'+evening.id+'/blocks/'+(t.dataset.blockTitle??t.dataset.blockText),'PATCH',
+   t.dataset.blockTitle!==undefined?{title:t.value}:{text:t.value});
+  return;
+ }
  if(t.dataset.control==='character'){if(S.dirty)await saveChar();pickCharacter(t.value);return}
  if(t.dataset.control==='roll-attr'){S.roll.attr=t.value;S.lastRoll=null;render();return}
  if(t.dataset.control==='roll-skill'){S.roll.skill=t.value;S.lastRoll=null;render();return}
@@ -299,6 +336,22 @@ document.addEventListener('submit',async ev=>{
  const form=ev.target;ev.preventDefault();
  const fd=new FormData(form),get=k=>String(fd.get(k)||'').trim();
  try{
+  if(form.id==='gm-effect-form'){
+   const ch=S.campaign.characters.find(x=>x.id===(S.gmTargetId||S.campaign.characters[0]?.id));
+   if(ch){await mutate('/characters/'+ch.id+'/effects','POST',{
+     title:get('title'),kind:get('kind'),duration:get('duration'),description:get('description'),
+     modifier:val(get('modifier')),visibleToPlayer:fd.has('visibleToPlayer')
+   });pop('Эффект назначен')}
+   return;
+  }
+  if(form.id==='gm-new-evening'){
+   const r=await api('/campaigns/'+S.campaign.id+'/evenings','POST',{title:get('title')});
+   S.gmEveningId=r.evening.id;await refreshCampaign();return;
+  }
+  if(form.id==='gm-add-block'){
+   const evening=(S.campaign.evenings||[]).find(x=>x.id===S.gmEveningId)||S.campaign.evenings?.[0];
+   if(evening)await mutate('/evenings/'+evening.id+'/blocks','POST',{title:get('title'),type:get('type')});return;
+  }
   if(form.id==='auth-form'){
    const route=S.authMode==='register'?'/auth/register':'/auth/login';
    const r=await api(route,'POST',{username:get('username'),password:get('password')});
