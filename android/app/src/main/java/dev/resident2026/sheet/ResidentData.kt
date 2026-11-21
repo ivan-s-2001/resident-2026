@@ -3,7 +3,6 @@ package dev.resident2026.sheet
 import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
-import java.security.SecureRandom
 import java.util.UUID
 
 data class Attribute(val key: String, val name: String, val group: String)
@@ -88,54 +87,6 @@ data class Sheet(
     }
     fun defense() = minOf(level("agility"), level("imagination"))
     fun valid(): Boolean = strongest != weakest && GROUPS.all { groupCost(it) <= groupBudget(it) }
-}
-
-data class DiceRoll(
-    val pool: Int, val difficulty: Int, val dice: List<Int>,
-    val bonus: Int, val successes: Int, val outcome: String
-)
-
-object ResidentDice {
-    private val random = SecureRandom()
-    fun roll(pool: Int, difficulty: Int): DiceRoll {
-        val target = difficulty.coerceIn(1, 5)
-        if (pool < 0) return DiceRoll(pool, target, emptyList(), 0, -1, "КРИТИЧЕСКИЙ ПРОВАЛ")
-        var bonus = 0
-        var successes = 0
-        val dice = mutableListOf<Int>()
-        for (i in 0 until pool.coerceAtMost(100)) {
-            dice.add(random.nextInt(10) + 1)
-        }
-        var index = 0
-        while (index < dice.size && dice.size < 500) {
-            val die = dice[index]
-            if (die == 1) successes--
-            if (die >= 8) successes++
-            if (die == 10) {
-                bonus++
-                dice.add(random.nextInt(10) + 1)
-            }
-            index++
-        }
-        // Последний куб тоже учитывается, если лимит безопасности прервал цепочку 10.
-        if (index < dice.size) {
-            for (i in index until dice.size) {
-                if (dice[i] == 1) successes--
-                if (dice[i] >= 8) successes++
-            }
-        }
-        val outcome = when {
-            successes < 0 -> "КРИТИЧЕСКИЙ ПРОВАЛ"
-            successes >= target + 3 -> "КРИТИЧЕСКИЙ УСПЕХ"
-            successes >= target -> "УСПЕХ"
-            else -> "НЕУДАЧА"
-        }
-        return DiceRoll(pool, target, dice, bonus, successes, outcome)
-    }
-    fun initiative(agility: Int): Pair<Int,Int> {
-        val die = random.nextInt(10) + 1
-        return die to die + agility
-    }
 }
 
 object SheetStorage {
