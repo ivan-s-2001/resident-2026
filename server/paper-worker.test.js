@@ -18,7 +18,8 @@ test('Offline mobile character sheet JavaScript is valid',()=>{
  assert.match(html,/class="bsaa-masthead"/);
  assert.match(html,/portrait-input/);
  assert.match(html,/roll-settings/);
- assert.match(sw,/r26-reference-dossier-v\d+/);
+ assert.match(sw,/r26-physical-dice-v\d+/);
+ assert.doesNotMatch(html,/roll-submit|quick-roll|rollComposer|function rollDice|ПРОВЕРКА D10/);
 });
 test('Official ready-made icon kit and paper texture are wired',()=>{
  const kit=asset('KIT_ICONS'),html=asset('HTML'),sw=asset('SW');
