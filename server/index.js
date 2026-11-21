@@ -12,6 +12,7 @@ const PORT=Number(process.env.PORT||3000);
 const COOKIE='resident_session';
 const ATTRS=['strength','agility','endurance','knowledge','imagination','will','manipulation','presence','insight'];
 const GROUPS=['Тело','Ум','Харизма'];
+const EFFECT_KINDS=new Set(['condition','injury','mental','information','other']);
 const clients=new Map(), attemptMap=new Map();
 const uuid=()=>randomUUID();
 const failure=(code,message)=>Object.assign(new Error(message),{code});
@@ -39,7 +40,7 @@ function dateValue(x){const d=trim(x,10);if(d!==''&&!/^\d{4}-\d{2}-\d{2}$/.test(
 function getEvenings(c){if(!Array.isArray(c.evenings))c.evenings=[];return c.evenings}
 function eveningBlock(e,id){const b=e.blocks.find(x=>x.id===id);if(!b)throw failure(404,'Блок не найден');return b}
 const visible=(ev,m,user)=>ev.visibility==='all'||m.role==='gm'||ev.visibility==='owner'&&ev.ownerId===user.id;
-function getChar(ch,m,u){const owner=ch.ownerId===u.id,master=m.role==='gm';const d=structuredClone(ch.data);if(!master)delete d.gmNotes;if(!owner&&!master)delete d.notes;return {id:ch.id,ownerId:ch.ownerId,data:d,editable:master||owner}}
+function getChar(ch,m,u){const owner=ch.ownerId===u.id,master=m.role==='gm';const d=structuredClone(ch.data);if(!master)delete d.gmNotes;if(!owner&&!master)delete d.notes;const effects=master?(ch.effects||[]):owner?(ch.effects||[]).filter(x=>x.visibleToPlayer):[];return {id:ch.id,ownerId:ch.ownerId,data:d,effects:structuredClone(effects),editable:master||owner}}
 function snapshot(c,m,u){return {
  id:c.id,title:c.title,description:c.description,role:m.role,ownerId:c.ownerId,
  inviteCode:m.role==='gm'?c.inviteCode:null,scene:c.scene,round:c.round,turn:c.turn,
@@ -208,13 +209,60 @@ const server=http.createServer(async(req,res)=>{try{
  if(method==='POST'&&route==='characters'){
   const mine=db.characters.filter(x=>x.campaignId===c.id&&x.ownerId===u.id);if(mine.length>=8)throw failure(400,'Не более восьми персонажей');
   const d=cleanData(await readBody(req),null,m.role==='gm');if(!d.name)throw failure(400,'Укажите имя');
-  const ch={id:uuid(),campaignId:c.id,ownerId:u.id,data:d};db.characters.push(ch);
+  const ch={id:uuid(),campaignId:c.id,ownerId:u.id,data:d,effects:[]};db.characters.push(ch);
   event(c,u,'system',{text:'Создан персонаж «'+d.name+'»'});save();emit(c.id);return send(res,201,{character:getChar(ch,m,u)});
  }
  if(method==='PATCH'&&route.startsWith('characters/')){
   const ch=db.characters.find(x=>x.id===route.slice(11)&&x.campaignId===c.id);if(!ch)throw failure(404,'Персонаж не найден');
   if(m.role!=='gm'&&ch.ownerId!==u.id)throw failure(403,'Нельзя менять чужой чарник');
   ch.data=cleanData(await readBody(req),ch.data,m.role==='gm');save();emit(c.id);return send(res,200,{character:getChar(ch,m,u)});
+ }
+ const effectsRoute=route.match(/^characters\/([^/]+)\/effects(?:\/([^/]+))?$/);
+ if(effectsRoute){
+  gm(m);
+  const ch=db.characters.find(x=>x.id===effectsRoute[1]&&x.campaignId===c.id);
+  if(!ch)throw failure(404,'Персонаж не найден');
+  if(!Array.isArray(ch.effects))ch.effects=[];
+  if(method==='POST'&&!effectsRoute[2]){
+   const b=await readBody(req);
+   if(ch.effects.length>=40)throw failure(400,'Не более 40 активных эффектов');
+   const title=trim(b.title,100);
+   if(!title)throw failure(400,'Введите название эффекта');
+   const kind=trim(b.kind,40)||'condition';
+   if(!EFFECT_KINDS.has(kind))throw failure(400,'Неверный тип эффекта');
+   const effect={id:uuid(),title,kind,description:trim(b.description,1200),
+    duration:trim(b.duration,100),modifier:integer(b.modifier??0,-5,5),
+    visibleToPlayer:b.visibleToPlayer!==false,createdAt:new Date().toISOString()};
+   ch.effects.push(effect);
+   event(c,u,'effect',{text:effect.visibleToPlayer?'Мастер назначил эффект «'+title+'» персонажу «'+ch.data.name+'»':'Мастер создал закрытый эффект для «'+ch.data.name+'»',
+    characterId:ch.id,effectId:effect.id},effect.visibleToPlayer?'owner':'gm',ch.ownerId);
+   save();emit(c.id);return send(res,201,{effect});
+  }
+  if(method==='DELETE'&&effectsRoute[2]){
+   const effect=ch.effects.find(x=>x.id===effectsRoute[2]);
+   if(!effect)throw failure(404,'Эффект не найден');
+   ch.effects=ch.effects.filter(x=>x.id!==effect.id);
+   event(c,u,'effect',{text:effect.visibleToPlayer?'Мастер снял эффект «'+effect.title+'» с персонажа «'+ch.data.name+'»':'Мастер снял закрытый эффект с «'+ch.data.name+'»',
+    characterId:ch.id,effectId:effect.id},effect.visibleToPlayer?'owner':'gm',ch.ownerId);
+   save();emit(c.id);return send(res,200,{ok:true});
+  }
+ }
+ const injuryRoute=route.match(/^characters\/([^/]+)\/injury$/);
+ if(method==='POST'&&injuryRoute){
+  gm(m);
+  const ch=db.characters.find(x=>x.id===injuryRoute[1]&&x.campaignId===c.id);
+  if(!ch)throw failure(404,'Персонаж не найден');
+  const b=await readBody(req),track=trim(b.track,30);
+  if(track!=='physical'&&track!=='mental')throw failure(400,'Неверная шкала здоровья');
+  const delta=integer(b.delta,-1,1);
+  if(delta===0)throw failure(400,'Укажите изменение');
+  const kind=trim(b.kind,20)||'blunt';
+  if(!['blunt','lethal'].includes(kind))throw failure(400,'Неверный тип урона');
+  const hp=ch.data.health[track],max=5+(track==='physical'?ch.data.attrs.endurance:ch.data.attrs.will);
+  if(delta===1){if(hp.length>=max)throw failure(400,'Шкала здоровья уже заполнена');hp.push(kind)}
+  else{if(hp.length===0)throw failure(400,'Нет повреждений для снятия');hp.pop()}
+  event(c,u,'health',{text:'Мастер '+(delta===1?'добавил '+(kind==='lethal'?'летальное':'тупое')+' повреждение':'снял повреждение')+' у «'+ch.data.name+'» ('+(track==='physical'?'физическое':'психологическое')+' здоровье)',characterId:ch.id},'owner',ch.ownerId);
+  save();emit(c.id);return send(res,200,{health:ch.data.health});
  }
  if(method==='POST'&&route==='rolls'){
   const b=await readBody(req);let pool=0,name='NPC',attribute=null,skill=null;
