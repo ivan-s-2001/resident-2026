@@ -39,3 +39,25 @@ test('One-screen character reference and GM quick controls are available',()=>{
  assert.match(api,/__Host-r26/);
  assert.match(api,/PBKDF2/);
 });
+
+test('Preview is isolated from production and usable before registration',()=>{
+ assert.match(html,/function startDemo\(role\)/);
+ assert.match(html,/function demoApi\(method,path,payload/);
+ assert.match(html,/if\(el\.preview\)return demoApi\(method,path,payload\)/);
+ assert.match(html,/preview==='gm'\|\|preview==='player'/);
+ assert.match(html,/data-act="demo-player"/);
+ assert.match(html,/data-act="demo-gm"/);
+ assert.match(html,/ДЕМО •/);
+});
+test('Fast tabletop interactions need no digital dice or manual save',()=>{
+ assert.match(html,/data-act="jump-notes"/);
+ assert.match(html,/setTimeout\(\(\)=>pane\.querySelector\('textarea'\)\?\.focus\(\),90\)/);
+ assert.match(html,/data-act="quick-effect"/);
+ assert.match(html,/data-act="remove-effect"/);
+ assert.match(html,/data-act="injury"/);
+ assert.match(html,/setTimeout\(\(\)=>saveChar\(true\),550\)/);
+ assert.match(html,/function draftChange\(key,value\)/);
+ assert.match(html,/if\(succeeded&&changedKeys\.size&&el\.dirty\)scheduleSave\(\)/);
+ assert.doesNotMatch(html,/Сохранить изменения<\/button>/);
+ assert.doesNotMatch(api,/Math\.random\(\)\s*\*\s*10/);
+});
