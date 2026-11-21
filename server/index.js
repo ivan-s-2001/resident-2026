@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes,randomUUID,scryptSync,createHash,timingSafeEqual} from 'node:crypto';
-import {evaluateRoll} from './rolls.js';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../public');
 const STORE=process.env.DATA_FILE||path.resolve(ROOT,'../data/db.json');
@@ -263,19 +262,6 @@ const server=http.createServer(async(req,res)=>{try{
   else{if(hp.length===0)throw failure(400,'Нет повреждений для снятия');hp.pop()}
   event(c,u,'health',{text:'Мастер '+(delta===1?'добавил '+(kind==='lethal'?'летальное':'тупое')+' повреждение':'снял повреждение')+' у «'+ch.data.name+'» ('+(track==='physical'?'физическое':'психологическое')+' здоровье)',characterId:ch.id},'owner',ch.ownerId);
   save();emit(c.id);return send(res,200,{health:ch.data.health});
- }
- if(method==='POST'&&route==='rolls'){
-  const b=await readBody(req);let pool=0,name='NPC',attribute=null,skill=null;
-  if(b.characterId){
-   const ch=db.characters.find(x=>x.id===b.characterId&&x.campaignId===c.id);if(!ch)throw failure(404,'Персонаж не найден');
-   if(m.role!=='gm'&&ch.ownerId!==u.id)throw failure(403,'Чужие броски недоступны');
-   attribute=trim(b.attribute,30);if(!ATTRS.includes(attribute))throw failure(400,'Неверный атрибут');
-   const lv=ch.data.attrs[attribute]||1;skill=trim(b.skill,90);const sk=ch.data.skills.find(x=>x.name===skill);pool=lv+(sk?sk.level:0);name=ch.data.name;
-  }else{gm(m);pool=integer(b.pool,0,100);name=trim(b.name,100)||'NPC'}
-  const modifier=integer(b.modifier??0,-30,30), difficulty=c.scene.difficulty;
-  const r=pool+modifier<0?{pool:pool+modifier,dice:[],bonusDice:0,successes:-1,difficulty,outcome:'critical_failure',truncated:false}:evaluateRoll(pool+modifier,difficulty);
-  const visibility=b.visibility==='gm'&&m.role==='gm'?'gm':b.visibility==='private'?'owner':'all';
-  event(c,u,'roll',{character:name,attribute,skill,modifier,...r},visibility,u.id);save();emit(c.id);return send(res,200,{roll:r});
  }
  if(method==='POST'&&route==='messages'){
   const b=await readBody(req),txt=trim(b.text,1500);if(!txt)throw failure(400,'Введите сообщение');
