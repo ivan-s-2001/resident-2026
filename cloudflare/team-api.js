@@ -19,11 +19,15 @@ const get=(db,sql,...p)=>db.prepare(sql).bind(...p).first();
 const run=(db,sql,...p)=>db.prepare(sql).bind(...p).run();
 const all=(db,sql,...p)=>db.prepare(sql).bind(...p).all().then(r=>r.results||[]);
 async function body(req){const t=req.headers.get('content-length');if(t&&Number(t)>400000)fail('Слишком большой запрос',413);const s=await req.text();if(s.length>400000)fail('Данные превышают лимит',413);try{return JSON.parse(s)}catch{fail('Некорректный JSON')}}
-function defaults(){return {name:'Новый оперативник',role:'Новобранец BSAA',attrs:Object.fromEntries(A.map(a=>[a,1])),strongest:'mind',weakest:'body',skills:[],items:[],abilities:[],health:{physical:[],mental:[]},notes:'',story:'',serviceId:'',citizenship:'',speciality:'',division:'',born:'',birthplace:'',inclination:'',purpose:''}}
+function defaults(){return {name:'Новый оперативник',role:'Новобранец BSAA',attrs:Object.fromEntries(A.map(a=>[a,1])),strongest:'mind',weakest:'body',skills:[],items:[],abilities:[],health:{physical:[],mental:[]},notes:'',story:'',serviceId:'',citizenship:'',speciality:'',division:'',born:'',birthplace:'',inclination:'',purpose:'',portrait:''}}
 function cleanData(raw,current,master){
  if(!raw||typeof raw!=='object'||Array.isArray(raw))fail('Некорректный чарник');
  const result={...current};
  for(const k of ['name','role','notes','story','serviceId','citizenship','speciality','division','born','birthplace','inclination','purpose'])if(k in raw)result[k]=text(raw[k],k==='notes'||k==='story'?4500:160);
+ if('portrait' in raw){
+  if(typeof raw.portrait==='string'&&raw.portrait.length<=280000&&(!raw.portrait||/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(raw.portrait)))result.portrait=raw.portrait;
+  else fail('Неподходящий формат или размер фотографии');
+ }
  if(!result.name)fail('Укажите имя персонажа');
  if(raw.attrs&&typeof raw.attrs==='object'){
   result.attrs={...current.attrs};for(const key of A)if(key in raw.attrs){const value=Number(raw.attrs[key]);if(!Number.isInteger(value)||value<1||value>5)fail('Характеристики должны быть от 1 до 5');result.attrs[key]=value}
