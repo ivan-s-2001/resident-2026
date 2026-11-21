@@ -53,6 +53,41 @@ test('регистрация, роли, чарник, приватность и 
   assert.equal(fromGM.data.campaign.characters[0].data.notes,'Личный дневник');
   assert.equal(fromPlayer.data.campaign.characters[0].data.health.physical[1],'lethal');
   const hide=await send('/campaigns/'+id+'/characters/'+chId,'PATCH',{gmNotes:'Попытка'},player);assert.equal(hide.status,403);
+
+  const forbiddenEffect=await send('/campaigns/'+id+'/characters/'+chId+'/effects','POST',{title:'Подмена эффекта'},player);
+  assert.equal(forbiddenEffect.status,403);
+  const made=await send('/campaigns/'+id+'/characters/'+chId+'/effects','POST',{
+   title:'Контузия',kind:'mental',description:'Сложнее сосредоточиться',duration:'До лечения',
+   modifier:-1,visibleToPlayer:true
+  },gm);
+  assert.equal(made.status,201);
+  const secretEffect=await send('/campaigns/'+id+'/characters/'+chId+'/effects','POST',{
+   title:'Скрытая угроза',kind:'condition',description:'Персонаж пока не знает причину',
+   visibleToPlayer:false
+  },gm);
+  assert.equal(secretEffect.status,201);
+  const playerEffects=(await send('/campaigns/'+id,'GET',undefined,player)).data.campaign.characters[0].effects;
+  const gmEffects=(await send('/campaigns/'+id,'GET',undefined,gm)).data.campaign.characters[0].effects;
+  assert.equal(playerEffects.length,1,'Игрок должен видеть только открытый эффект');
+  assert.equal(playerEffects[0].title,'Контузия');
+  assert.equal(gmEffects.length,2,'Мастер видит также закрытые эффекты');
+  assert.equal((await send('/campaigns/'+id,'GET',undefined,player)).data.campaign.events.some(x=>x.payload.text?.includes('Скрытая угроза')),false);
+  const updateByPlayer=await send('/campaigns/'+id+'/characters/'+chId,'PATCH',{name:'Вирусолог 2',effects:[]},player);
+  assert.equal(updateByPlayer.status,200);
+  const afterUpdate=(await send('/campaigns/'+id,'GET',undefined,gm)).data.campaign.characters[0].effects;
+  assert.equal(afterUpdate.length,2,'Обновление листа игроком не может стереть эффекты мастера');
+  const injury=await send('/campaigns/'+id+'/characters/'+chId+'/injury','POST',{track:'physical',kind:'lethal',delta:1},gm);
+  assert.equal(injury.status,200);
+  assert.equal(injury.data.health.physical.length,3);
+  assert.equal((await send('/campaigns/'+id+'/characters/'+chId+'/injury','POST',{track:'physical',kind:'blunt',delta:1},player)).status,403);
+  const healing=await send('/campaigns/'+id+'/characters/'+chId+'/injury','POST',{track:'physical',delta:-1},gm);
+  assert.equal(healing.status,200);
+  assert.equal(healing.data.health.physical.length,2);
+  const cleared=await send('/campaigns/'+id+'/characters/'+chId+'/effects/'+made.data.effect.id,'DELETE',undefined,gm);
+  assert.equal(cleared.status,200);
+  const finalEffect=(await send('/campaigns/'+id,'GET',undefined,player)).data.campaign.characters[0].effects;
+  assert.equal(finalEffect.length,0,'После снятия открытого эффекта игрок не должен видеть скрытый');
+
   const roll=await send('/campaigns/'+id+'/rolls','POST',{characterId:chId,attribute:'knowledge',skill:'Вирусология',modifier:0},player);
   assert.equal(roll.status,200);assert.equal(roll.data.roll.pool,7);
   const secretRoll=await send('/campaigns/'+id+'/rolls','POST',{name:'Секретный NPC',pool:4,visibility:'gm'},gm);
