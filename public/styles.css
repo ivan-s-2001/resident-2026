@@ -13,3 +13,91 @@ button,input,textarea,select{font:inherit;color:inherit}button{cursor:pointer}bu
 
 .quick-roll{width:26px;height:26px;flex:0 0 26px;display:grid;place-items:center;border:1px solid #7f947e;border-radius:7px;background:#2c413a;color:#d9efcf;font-size:18px;line-height:1}
 .quick-roll:hover{background:#52654b}
+
+
+/* Tabletop UX: compact phone sheet + touch-first GM console.
+   No ornamental clipart or faux-paper graphics. */
+.gm-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:18px;padding:5px;border:1px solid var(--line);border-radius:12px;background:#111a21}
+.gm-mode{border:1px solid transparent;border-radius:8px;min-height:47px;color:#aab8b8;background:transparent;padding:10px 9px;font-size:13px;font-weight:700;text-align:center}
+.gm-mode.active{background:#32453e;color:#eff8ef;border-color:#658b78}
+.gm-mode:focus-visible,.gm-person:focus-visible,.sheet-tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.gm-workspace{display:grid;grid-template-columns:minmax(250px,.8fr) minmax(0,1.35fr);gap:17px;align-items:start}
+.gm-workspace>.panel{margin:0;min-width:0}
+.gm-people{display:flex;flex-direction:column;gap:7px}
+.gm-person{width:100%;border:1px solid #394b50;border-radius:11px;background:#131e25;color:var(--text);padding:12px 10px;display:flex;align-items:center;text-align:left;gap:11px;min-height:66px}
+.gm-person.selected{border-color:#9cad8b;background:#293b34}
+.gm-person:hover{border-color:#94a698}
+.gm-monogram{width:40px;height:40px;border:1px solid #60786c;background:#2c4540;color:#d9e9dc;border-radius:9px;flex:none;display:grid;place-items:center;font-weight:900;font-size:18px}
+.gm-person-details{min-width:0;flex:1}
+.gm-person-details strong{display:block;font-size:13px;line-height:1.3;overflow-wrap:anywhere}
+.gm-person-details small{display:block;color:#97a9aa;font-size:11px;margin-top:4px;overflow-wrap:anywhere}
+.gm-person-hp{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.gm-inspector .panel-head{margin-bottom:24px}
+.gm-inspector .panel-head h2{font-size:20px;margin-top:4px}
+.gm-hp-row{background:#121c23;border:1px solid #2d3e41;padding:14px;border-radius:11px;margin-bottom:11px}
+.gm-hp-label{display:flex;align-items:center;justify-content:space-between;gap:9px;font-size:13px}
+.gm-hp-label span{font-weight:800;font-variant-numeric:tabular-nums;font-size:16px}
+.gm-hp-progress{height:6px;border-radius:5px;background:#374444;margin:11px 0;overflow:hidden}
+.gm-hp-progress i{display:block;background:#91b69e;height:100%;border-radius:5px}
+.gm-action-row{display:flex;gap:7px;flex-wrap:wrap}
+.gm-action-row .btn{flex:1;padding:10px 8px;white-space:normal;font-size:11px;min-height:44px}
+.gm-subheading{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:800;margin:23px 0 9px}
+.gm-subheading span{color:var(--muted)}
+.gm-effect-row,.effect-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #354047}
+.gm-effect-row>div{min-width:0;flex:1}
+.gm-effect-row strong,.effect-row strong{font-size:13px}
+.gm-effect-row small,.effect-row small{display:block;margin-top:4px;font-size:11px;color:#acb9b7}
+.gm-effect-row p,.effect-row p{font-size:12px;color:#c3d0cb;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:6px}
+.effect-mark{width:9px;height:9px;flex:none;background:#b0c8af;border-radius:2px;margin-top:5px}
+.gm-form{padding-top:15px;margin-top:17px;border-top:1px solid #354047;display:flex;flex-direction:column;gap:13px}
+.gm-form textarea{min-height:76px}
+.gm-checkbox{align-self:center;display:flex;align-items:center;gap:8px;font-size:12px;min-height:48px}
+.gm-checkbox input{width:17px;height:17px;accent-color:#a3ba9d}
+.gm-plan-workspace{display:grid;grid-template-columns:minmax(245px,.75fr) minmax(0,1.45fr);gap:17px;align-items:start}
+.gm-plan-workspace>.panel{margin:0}
+.gm-evening-select{margin-bottom:13px}
+.gm-plan-status{padding-bottom:13px;border-bottom:1px solid #39474b;margin-bottom:12px;font-size:12px}
+.gm-plan-status label{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.gm-plan-status select{width:180px}
+.gm-plan-block{background:#131d24;border:1px solid #324248;border-radius:9px;padding:12px;margin:10px 0}
+.gm-plan-block.done{opacity:.67}
+.gm-plan-row{display:flex;align-items:center;justify-content:space-between;gap:7px;margin-bottom:10px;flex-wrap:wrap}
+.gm-plan-row>span{font-size:10px;color:#bfcdb8;font-weight:800;letter-spacing:1.1px}
+.gm-plan-row>div{display:flex;gap:3px;flex-wrap:wrap}
+.gm-plan-row .btn{padding:5px 7px;min-height:34px}
+.gm-plan-block>input{border-color:transparent;border-bottom-color:#394c50;background:transparent;font-size:14px;font-weight:800;border-radius:0;padding:7px 2px}
+.gm-plan-block>textarea{border-color:transparent;background:transparent;padding:8px 2px;min-height:55px;resize:vertical;font-size:12px;color:#c3cfc9}
+.gm-plan-block>textarea:focus{border-color:#6e887b;border-radius:5px}
+.sheet-summary{margin-bottom:17px}
+.sheet-avatar{display:grid;place-items:center;width:58px;height:58px;border-radius:11px;border:1px solid #566d65;background:#293b39;color:#d7e6d7;font-size:22px;font-weight:900}
+.sheet-summary .sheet-head{margin-bottom:9px}
+.sheet-tabs{position:sticky;top:0;z-index:4;background:#0c1116e8;backdrop-filter:blur(12px);padding:9px 0;margin-bottom:12px}
+.sheet-tab{min-height:43px}
+.effects-panel .panel-head{margin-bottom:7px}
+@media(max-width:1100px){
+ .gm-workspace{grid-template-columns:minmax(230px,.85fr) minmax(0,1.2fr)}
+ .gm-plan-workspace{grid-template-columns:minmax(220px,.8fr) minmax(0,1.25fr)}
+ .gm-inspector .panel-head{flex-wrap:wrap}
+}
+@media(max-width:900px){
+ .gm-workspace,.gm-plan-workspace{grid-template-columns:1fr}
+ .gm-people{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .gm-roster .gm-person{min-width:0}
+}
+@media(max-width:600px){
+ .gm-people{grid-template-columns:1fr}
+ .gm-modes{gap:3px}
+ .gm-mode{font-size:11px;padding:9px 3px;min-height:46px}
+ .gm-person{min-height:61px}
+ .gm-workspace>.panel,.gm-plan-workspace>.panel{padding:14px}
+ .gm-inspector .panel-head h2{font-size:17px}
+ .gm-action-row .btn{min-height:45px}
+ .gm-plan-row .btn{padding:6px 10px}
+ .gm-plan-status select{width:160px}
+ .sheet-tabs{top:0;gap:5px;overflow-x:auto}
+ .sheet-tab{padding:9px 11px;font-size:11px;min-height:43px}
+ .sheet-avatar{width:49px;height:49px;font-size:19px}
+ .topbar .btn-row .btn{display:none}
+ .sheet-name{font-size:19px}
+}
+@media(prefers-reduced-motion:reduce){.gm-mode,.gm-person,.sheet-tab{transition:none}}
