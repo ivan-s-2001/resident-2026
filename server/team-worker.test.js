@@ -25,10 +25,17 @@ test('Roles and physical dice constraints are hard boundaries',()=>{
  assert.doesNotMatch(api,/evaluateRoll|rollDice|Math\.random\(\)\s*\*\s*10/);
  assert.doesNotMatch(html,/БРОСИТЬ КУБЫ|Бросить d10|data-act="roll"/);
 });
-test('Player has character sheet, GM has effects and planning',()=>{
- for(const word of ['Пульт мастера','Активные эффекты','Назначить эффект','Подготовка вечера','Личный чарник','Перенести данные'])assert.ok(html.includes(word),word);
- for(const route of ['/api/setup','/api/register','/api/login','/api/logout','/api/state','/api/characters','/api/plans','/api/scene'])assert.ok(api.includes(route),route);
- assert.ok(html.includes('resident2026-paper-v1'),'Import must read the existing local sheet on the same origin');
+test('One-screen character reference and GM quick controls are available',()=>{
+ for(const marker of ['function sheetView()','function gmTeamView()','function gmPlanView()','function effectsMarkup(',
+  'data-act="quick-effect"','data-act="injury"','class="quick-cols"','class="quick-notes"','id="effect-form"'])
+  assert.ok(html.includes(marker),marker);
+ assert.match(html,/function markChanged\(key\)/);
+ assert.match(html,/setTimeout\(\(\)=>saveChar\(true\),550\)/);
+ assert.match(html,/!el\.dirty&&!el\.saving/);
+ assert.doesNotMatch(html,/Сначала сохраните изменения в чарнике/);
+ assert.match(html,/resident2026-paper-v1/);
+ for(const route of ['/api/setup','/api/register','/api/login','/api/logout','/api/state','/api/characters','/api/plans','/api/scene'])
+  assert.ok(api.includes(route),route);
  assert.match(api,/__Host-r26/);
  assert.match(api,/PBKDF2/);
 });
