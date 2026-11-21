@@ -88,14 +88,14 @@ test('регистрация, роли, чарник, приватность и 
   const finalEffect=(await send('/campaigns/'+id,'GET',undefined,player)).data.campaign.characters[0].effects;
   assert.equal(finalEffect.length,0,'После снятия открытого эффекта игрок не должен видеть скрытый');
 
-  const roll=await send('/campaigns/'+id+'/rolls','POST',{characterId:chId,attribute:'knowledge',skill:'Вирусология',modifier:0},player);
-  assert.equal(roll.status,200);assert.equal(roll.data.roll.pool,7);
-  const secretRoll=await send('/campaigns/'+id+'/rolls','POST',{name:'Секретный NPC',pool:4,visibility:'gm'},gm);
-  assert.equal(secretRoll.status,200);
+  const digitalRoll=await send('/campaigns/'+id+'/rolls','POST',{characterId:chId,attribute:'knowledge'},player);
+  assert.equal(digitalRoll.status,404,'Приложение не должно генерировать броски — используются физические d10');
+  const gmDigitalRoll=await send('/campaigns/'+id+'/rolls','POST',{name:'NPC',pool:5},gm);
+  assert.equal(gmDigitalRoll.status,404,'У мастера тоже нет цифровых бросков');
   const gmSnap=(await send('/campaigns/'+id,'GET',undefined,gm)).data.campaign;
   const playerSnap=(await send('/campaigns/'+id,'GET',undefined,player)).data.campaign;
-  assert.ok(gmSnap.events.some(x=>x.type==='roll'&&x.payload.character==='Секретный NPC'));
-  assert.ok(!playerSnap.events.some(x=>x.type==='roll'&&x.payload.character==='Секретный NPC'));
+  assert.ok(!gmSnap.events.some(x=>x.type==='roll'),'API не создаёт бросков');
+  assert.ok(!playerSnap.events.some(x=>x.type==='roll'),'Игрок не получает цифровые броски');
  }finally{
   child.kill('SIGTERM');
   rmSync(folder,{recursive:true,force:true});
