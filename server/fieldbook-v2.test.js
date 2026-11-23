@@ -97,3 +97,20 @@ test('v2: demo source material is not published as campaign seed data',()=>{
  assert.match(docs,/No unverified Resident Evil art/);
  assert.match(page,/\/next\/favicon\.svg/);
 });
+
+
+test('v2: character-first navigation and GM in-place editing with credited item art',()=>{
+ assert.match(kit,/export function itemIcon\(/);
+ assert.match(app,/function playerReference\(/);
+ assert.match(app,/data-action="gm-focus"/);
+ assert.match(app,/s\.gmPanel=el\.dataset\.panel/);
+ assert.match(app,/class="gm-quick-row"/);
+ assert.match(theme,/\.gm-tabs/);
+ assert.match(theme,/\.gm-accounts/);
+ assert.doesNotMatch(app,/Сообщение мастера/);
+ assert.doesNotMatch(kit,/\['plan','Сессия'/);
+ assert.doesNotMatch(kit,/\['log','Журнал'/);
+ const credits=read('../docs/THIRD-PARTY-V2.md');
+ assert.match(credits,/Game-icons\.net/);
+ assert.match(credits,/CC BY 3\.0/);
+});
