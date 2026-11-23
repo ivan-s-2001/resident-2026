@@ -57,3 +57,30 @@ test('Fast auto-save, physical and mental damage, and isolated demo',()=>{
  assert.match(html,/data-char="notes"/);
  assert.match(html,/setTimeout\(\(\)=>saveChar\(true\),550\)/);
 });
+
+test('All character and GM tabs share paper rendering',()=>{
+ const sections={
+  stats:['function statsView()','function gearView()'],
+  gear:['function gearView()','function bioView()'],
+  bio:['function bioView()','function savePanel()'],
+  team:['function gmTeamView()','function invites()'],
+  plans:['function gmPlanView()','function historyView()'],
+  history:['function historyView()','function mainView()']
+ };
+ for(const [name,[start,end]] of Object.entries(sections)){
+  const a=html.indexOf(start),b=html.indexOf(end,a+start.length);
+  assert.ok(a>=0&&b>a,name+' section exists');
+  const source=html.slice(a,b);
+  assert.ok(source.includes('paperPage('),name+' uses paper layout');
+ }
+ for(const marker of ['function paperPage(','.paper-page .paper-document-head','.paper-page .paper-section','.paper-page .paper-grid','.paper-page .paper-entry','.paper-page .paper-plan-block','.paper-page .paper-log']){
+  assert.ok(html.includes(marker),marker);
+ }
+ assert.match(html,/\['team','Группа'\],\['plan','План'\],\['history','Журнал'\],\['sheet','Лист'\],\['stats','Параметры'\],\['gear','Вещи'\],\['bio','Досье'\]/);
+});
+test('Phone screens show all tabs instead of hiding dossier offscreen',()=>{
+ assert.match(html,/\.nav\{position:sticky;top:0;display:flex;flex-wrap:wrap;overflow:visible/);
+ assert.match(html,/\.paper-page \.monogram\{/);
+ assert.match(html,/id="photo-file"/);
+ assert.match(html,/data-act="upload-photo"/);
+});
