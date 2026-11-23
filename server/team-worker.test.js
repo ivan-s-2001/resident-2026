@@ -16,11 +16,11 @@ test('PDF-inspired page and Worker scripts parse',()=>{
  new Script(api.replace("import { PAGE } from './team-page.js';","const PAGE = '';").replace('export default {','const handler = {'),{filename:'resident-2026-worker.js'});
  assert.match(html,/viewport-fit=cover/);
  assert.match(html,/paper-sheet/);
- assert.match(html,/paper-headgrid/);
- assert.match(html,/@media\(max-width:650px\)/);
+ assert.match(html,/pdf-gridtop/);
+ assert.match(html,/@media\(max-width:660px\)/);
 });
 test('Printed sheet structure is reproduced',()=>{
- for(const phrase of ['РЕЗИДЕНТ','ХАРАКТЕРИСТИКИ','НАВЫКИ И ЧЕРТЫ','ШМОТЬЕ','ВЫЯВЛЕННЫЕ ПРОБЛЕМЫ СО ЗДОРОВЬЕМ','ДЛЯ ЗАМЕТОК','paper-health-cell','paper-attributes','paper-inline'])assert.ok(html.includes(phrase),phrase);
+ for(const phrase of ['РЕЗИДЕНТ','ХАРАКТЕРИСТИКИ','НАВЫКИ И ЧЕРТЫ','ШМОТЬЕ','ВЫЯВЛЕННЫЕ ПРОБЛЕМЫ СО ЗДОРОВЬЕМ','ДЛЯ ЗАМЕТОК','pdf-hrow','pdf-attrs','pdf-inline'])assert.ok(html.includes(phrase),phrase);
  assert.match(html,/Unutterable/);
  assert.match(api,/\/unutterable.ttf/);
 });
@@ -79,8 +79,17 @@ test('All character and GM tabs share paper rendering',()=>{
  assert.match(html,/\['team','Группа'\],\['plan','План'\],\['history','Журнал'\],\['sheet','Лист'\],\['stats','Параметры'\],\['gear','Вещи'\],\['bio','Досье'\]/);
 });
 test('Phone screens show all tabs instead of hiding dossier offscreen',()=>{
- assert.match(html,/\.nav\{position:sticky;top:0;display:flex;flex-wrap:wrap;overflow:visible/);
+ assert.match(html,/\.nav\{position:sticky;top:0;z-index:15;display:flex;flex-wrap:wrap/);
  assert.match(html,/\.paper-page \.monogram\{/);
  assert.match(html,/id="photo-file"/);
  assert.match(html,/data-act="upload-photo"/);
+});
+
+test('True compact paper source proportions and readable controls',()=>{
+ assert.match(html,/class="pdf-heading"/);
+ assert.match(html,/class="pdf-brand"/);
+ assert.match(html,/class="pdf-biography"/);
+ assert.match(html,/class="pdf-bottom"/);
+ assert.match(html,/\.pdf-sheet \.pdf-gridtop\{display:grid;grid-template-columns/);
+ assert.match(html,/\.paper-page \.paper-entry \.entry-name\{font:600 13px/);
 });
