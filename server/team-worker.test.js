@@ -12,7 +12,7 @@ const browser=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 test('Unified GM + player interface parses without dependencies',()=>{
  assert.ok(browser,'Browser application script is present');
  new Script(browser,{filename:'shared-team-browser.js'});
- new Script(api.replace("import { PAGE } from './team-page.js';",'const PAGE = "";').replace('export default {','const handler = {'),{filename:'cloudflare-team-worker.js'});
+ new Script(api.replace(/^import .*?;$/gm,'').replace('export default {','const handler = {'),{filename:'cloudflare-team-worker.js'});
  assert.match(html,/viewport-fit=cover/);
  assert.match(html,/@media\(max-width:650px\)/);
 });
