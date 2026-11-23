@@ -63,6 +63,6 @@ test('v2: genuine open-source foundation and responsive layout',()=>{
  assert.match(theme,/\.sidebar/);
  assert.match(theme,/\.mobile-bottom/);
  assert.match(theme,/@media\(max-width:720px\)/);
- assert.match(kit,/Selected Lucide/);
+ assert.match(kit,/selected Lucide/i);
  assert.match(page,/lang="ru"/);
 });
