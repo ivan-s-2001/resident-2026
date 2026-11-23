@@ -66,3 +66,34 @@ test('v2: genuine open-source foundation and responsive layout',()=>{
  assert.match(kit,/selected Lucide/i);
  assert.match(page,/lang="ru"/);
 });
+
+test('v2: authenticated, GM-editable source-attributed D1 catalog',()=>{
+ const schema=read('../cloudflare/catalog-schema.sql');
+ assert.match(schema,/CREATE TABLE IF NOT EXISTS catalog_entries/);
+ assert.match(schema,/weapon_ranged/);
+ assert.match(schema,/weapon_melee/);
+ assert.match(schema,/skill/);
+ assert.match(schema,/source TEXT NOT NULL/);
+ assert.match(worker,/if\(method==='GET'&&path==='\/api\/catalog'\)/);
+ assert.match(worker,/if\(method==='POST'&&path==='\/api\/catalog'\)/);
+ const gmStart=worker.indexOf("if(method==='POST'&&path==='/api/catalog')");
+ assert.ok(gmStart>0);
+ assert.match(worker.slice(gmStart,gmStart+120),/requireGM\(user\)/);
+ const authStart=worker.indexOf("if(!user)fail('Требуется вход',401)");
+ const readStart=worker.indexOf("if(method==='GET'&&path==='/api/catalog')");
+ assert.ok(readStart>authStart,'catalog endpoint must require a session');
+ assert.match(worker,/catalogId:text\(x.catalogId,100\)/);
+ assert.match(app,/function catalogModal\(\)/);
+ assert.match(app,/data-action="catalog-add"/);
+ assert.match(app,/await request\('GET','\/catalog'\)/);
+ assert.match(app,/catalogId:entry.id/);
+ assert.match(app,/Материалы Александра/);
+});
+test('v2: demo source material is not published as campaign seed data',()=>{
+ const docs=read('../docs/THIRD-PARTY-V2.md');
+ assert.match(docs,/SheetBound \(MIT\)/);
+ assert.match(docs,/OpenPentacle \(GPL-3.0\)/);
+ assert.match(docs,/No GPL source copied/);
+ assert.match(docs,/No unverified Resident Evil art/);
+ assert.match(page,/\/next\/favicon\.svg/);
+});
