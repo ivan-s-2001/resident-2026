@@ -41,7 +41,7 @@ function cleanData(raw,current,master){
  if(result.strongest===result.weakest)fail('Сильная и слабая группы должны различаться');
  for(const key of ['skills','items','abilities'])if(key in raw){
   if(!Array.isArray(raw[key])||raw[key].length>90)fail('Слишком много записей');
-  result[key]=raw[key].map((x,i)=>({id:text(x.id,60)||crypto.randomUUID(),name:text(x.name,100),level:Math.max(0,Math.min(5,Math.trunc(Number(x.level)||0))),cost:Math.max(0,Math.min(21,Math.trunc(Number(x.cost)||0))),quantity:Math.max(0,Math.min(999,Math.trunc(Number(x.quantity)||1)))})).filter(x=>x.name);
+  result[key]=raw[key].map((x,i)=>({id:text(x.id,60)||crypto.randomUUID(),catalogId:text(x.catalogId,100),name:text(x.name,100),level:Math.max(0,Math.min(5,Math.trunc(Number(x.level)||0))),cost:Math.max(0,Math.min(21,Math.trunc(Number(x.cost)||0))),quantity:Math.max(0,Math.min(999,Math.trunc(Number(x.quantity)||1)))})).filter(x=>x.name);
  }
  // Only GM can change health. Effects are stored in a separate table.
  if(master&&raw.health){
@@ -201,6 +201,25 @@ export default {
     const salt=random(16),hash=await derive(password,salt);
     await run(db,'UPDATE users SET password_salt=?,password_hash=? WHERE id=?',salt,hash,user.id);
     await event(db,user.id,null,'password','Пользователь изменил пароль','gm');return j({ok:true});
+   }
+   if(method==='GET'&&path==='/api/catalog'){
+    const category=url.searchParams.get('category');
+    if(category&&(!['weapon_ranged','weapon_melee','consumable','armor','skill','ability','item'].includes(category)))fail('Неизвестный раздел справочника');
+    const entries=category?await all(db,'SELECT * FROM catalog_entries WHERE category=? ORDER BY title LIMIT 350',category):await all(db,'SELECT * FROM catalog_entries ORDER BY category,title LIMIT 500');
+    return j({entries:entries.map(x=>({id:x.id,category:x.category,title:x.title,subtitle:x.subtitle,cost:x.cost,payload:JSON.parse(x.payload),source:x.source,updatedAt:x.updated_at}))});
+   }
+   if(method==='POST'&&path==='/api/catalog'){
+    requireGM(user);const p=await body(req);
+    if(!['weapon_ranged','weapon_melee','consumable','armor','skill','ability','item'].includes(p.category))fail('Неизвестный тип');
+    const title=text(p.title,120),subtitle=text(p.subtitle,220);
+    if(!title)fail('Укажите название');
+    const cost=Number(p.cost||0);if(!Number.isInteger(cost)||cost<0||cost>21)fail('Недопустимая ценность');
+    if(p.payload==null||typeof p.payload!=='object'||Array.isArray(p.payload))fail('Некорректные параметры');
+    const payload=JSON.stringify(p.payload);if(payload.length>6000)fail('Слишком подробная запись');
+    const id=crypto.randomUUID(),source=text(p.source,220)||'Добавлено мастером',updated=now();
+    await run(db,'INSERT INTO catalog_entries(id,category,title,subtitle,cost,payload,source,updated_at) VALUES(?,?,?,?,?,?,?,?)',id,p.category,title,subtitle,cost,payload,source,updated);
+    await event(db,user.id,null,'catalog','Мастер добавил запись справочника '+title,'gm');
+    return j({id},201);
    }
    if(method==='GET'&&path==='/api/state')return j(await state(db,user));
    if(method==='POST'&&path==='/api/characters'){
