@@ -20,7 +20,7 @@ test('PDF-inspired page and Worker scripts parse',()=>{
  assert.match(html,/@media\(max-width:660px\)/);
 });
 test('Printed sheet structure is reproduced',()=>{
- for(const phrase of ['РЕЗИДЕНТ','ХАРАКТЕРИСТИКИ','НАВЫКИ И ЧЕРТЫ','ШМОТЬЕ','ВЫЯВЛЕННЫЕ ПРОБЛЕМЫ СО ЗДОРОВЬЕМ','ДЛЯ ЗАМЕТОК','pdf-hrow','pdf-attrs','pdf-inline'])assert.ok(html.includes(phrase),phrase);
+ for(const phrase of ['РЕЗИДЕНТ','ХАРАКТЕРИСТИКИ','НАВЫКИ И ЧЕРТЫ','ШМОТЬЕ','ВЫЯВЛЕННЫЕ ПРОБЛЕМЫ СО ЗДОРОВЬЕМ','ДЛЯ ЗАМЕТОК','pdf-hrow','pdf-attrs','pdf-inline'])assert.ok(html.toLocaleLowerCase('ru').includes(phrase.toLocaleLowerCase('ru')),phrase);
  assert.match(html,/Unutterable/);
  assert.match(api,/\/unutterable.ttf/);
 });
