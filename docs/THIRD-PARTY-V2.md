@@ -34,6 +34,13 @@ SOFTWARE.
 https://github.com/lucide-icons/lucide
 Interface line icons are selected/adapted from the Lucide icon set. See https://github.com/lucide-icons/lucide/blob/main/LICENSE
 
+
+## Game-icons.net — selected item silhouettes (CC BY 3.0)
+
+Source: https://game-icons.net/ and https://github.com/game-icons/icons. Authors: **Delapouite** (first-aid-kit, flashlight) and **Lorc** (biohazard, bullets, gas-mask, bowie-knife, crossed-pistols). License: https://creativecommons.org/licenses/by/3.0/ .
+
+The seven named SVG shapes were taken from the official game-icons/icons repository, stripped of their black 512 × 512 backgrounds, embedded as inline SVG paths in `cloudflare/v2-kit.js` and tinted with `currentColor`. They are used solely as recognizable item-category illustrations; system controls continue to use Lucide line icons. This attribution applies to the modified item shapes as well as the originals.
+
 ## Architectural references, not copied
 - OpenPentacle (GPL-3.0): content-pack-driven character data and modular interface architecture. No GPL source copied. https://github.com/arrowedisgaming/OpenPentacle
 - RPGFieldbook (MIT): fast fieldbook UX and character counters. https://github.com/wardmanm/RPGFieldbook
